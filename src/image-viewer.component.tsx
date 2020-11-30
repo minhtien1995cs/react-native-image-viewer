@@ -87,7 +87,7 @@ export default class ImageViewer extends React.Component<Props, State> {
 
     // 给 imageSizes 塞入空数组
     const imageSizes: IImageSize[] = [];
-    nextProps.imageUrls.forEach(imageUrl => {
+    nextProps.imageUrls.forEach((imageUrl) => {
       imageSizes.push({
         width: imageUrl.width || 0,
         height: imageUrl.height || 0,
@@ -210,9 +210,36 @@ export default class ImageViewer extends React.Component<Props, State> {
           imageStatus.status = 'success';
           saveImageSize();
         } catch (newError) {
-          // Give up..
-          imageStatus.status = 'fail';
-          saveImageSize();
+          if (!image.props.headers) {
+            // Give up..
+            imageStatus.status = 'fail';
+            saveImageSize();
+            return;
+          }
+
+          Image.getSizeWithHeaders(
+            image.url,
+            image.props.headers,
+            (width: number, height: number) => {
+              imageStatus.width = width;
+              imageStatus.height = height;
+              imageStatus.status = 'success';
+              saveImageSize();
+            },
+            () => {
+              try {
+                const data = (Image as any).resolveAssetSource(image.props.source);
+                imageStatus.width = data.width;
+                imageStatus.height = data.height;
+                imageStatus.status = 'success';
+                saveImageSize();
+              } catch (newError) {
+                // Give up..
+                imageStatus.status = 'fail';
+                saveImageSize();
+              }
+            }
+          );
         }
       }
     );
@@ -538,7 +565,7 @@ export default class ImageViewer extends React.Component<Props, State> {
           return (
             <ImageZoom
               key={index}
-              ref={el => (this.imageRefs[index] = el)}
+              ref={(el) => (this.imageRefs[index] = el)}
               cropWidth={this.width}
               cropHeight={this.height}
               maxOverflow={this.props.maxOverflow}
